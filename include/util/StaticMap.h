@@ -1,8 +1,6 @@
 #ifndef __UTIL_STATIC_MAP_H__
 #define __UTIL_STATIC_MAP_H__
 
-#include "bl/bl_types.h"
-
 namespace util
 {
 
