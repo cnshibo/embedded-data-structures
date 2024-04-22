@@ -1,8 +1,6 @@
 #ifndef __SL_STATIC_POOL_H___
 #define __SL_STATIC_POOL_H___
 
-#include "bl/bl_types.h"
-
 namespace util
 {
 template <typename T, size_t POOL_SIZE> class StaticPool
