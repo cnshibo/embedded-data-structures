@@ -1,71 +1,191 @@
-#ifndef __SL_STATIC_POOL_H___
-#define __SL_STATIC_POOL_H___
+#ifndef __UTIL_STATIC_POOL_H__
+#define __UTIL_STATIC_POOL_H__
+
+
+/**
+ * @file StaticPool.h
+ * @brief A static memory pool implementation for embedded systems
+ */
+
 
 namespace util
 {
-template <typename T, size_t POOL_SIZE> class StaticPool
+/**
+ * @brief A static memory pool implementation with fixed size
+ * 
+ * This class implements a memory pool that pre-allocates a fixed number of
+ * objects of the same type. It provides efficient memory allocation and
+ * deallocation with O(1) time complexity and no fragmentation.
+ * 
+ * Features:
+ * - Fixed size pool (specified at compile time)
+ * - No dynamic memory allocation during runtime
+ * - Thread-safe for single allocator/single deallocator scenarios
+ * - Automatic object initialization and cleanup
+ * - Memory reuse without fragmentation
+ * 
+ * @tparam T The type of objects to be stored in the pool
+ * @tparam SIZE The maximum number of objects the pool can hold
+ * 
+ * Example usage:
+ * @code
+ * StaticPool<MyClass, 10> pool;
+ * MyClass* obj = pool.allocate();
+ * if (obj) {
+ *     // Use the object
+ *     pool.deallocate(obj);
+ * }
+ * @endcode
+ */
+template <typename T, size_t SIZE> class StaticPool
 {
-public:
-    StaticPool() : available_elements_(POOL_SIZE)
+private:
+    union PoolElement
     {
-        /* Initialize all flags to indicate objects are not in use */
-        memset(used_flags_, 0, POOL_SIZE * sizeof(bool));
-        next_index_ = 0;
+        T object_;                   ///< The actual object storage
+        PoolElement *next_;          ///< Pointer to next free element (when free)
+    };
+
+    PoolElement pool_[SIZE];         ///< The pool storage array
+    bool used_flags_[SIZE];          ///< Flags indicating which elements are in use
+    PoolElement *next_index_;        ///< Pointer to next available element
+    size_t available_elements_;      ///< Number of elements currently available
+
+public:
+    /**
+     * @brief Construct a new Static Pool object
+     * 
+     * Initializes the pool and sets up the free list.
+     */
+    StaticPool() : next_index_(nullptr), available_elements_(SIZE)
+    {
+        // Initialize all elements as unused
+        for (size_t i = 0; i < SIZE; ++i)
+        {
+            used_flags_[i] = false;
+            if (i < SIZE - 1)
+            {
+                pool_[i].next_ = &pool_[i + 1];
+            }
+            else
+            {
+                pool_[i].next_ = nullptr;
+            }
+        }
+        next_index_ = &pool_[0];
     }
 
-    /* Allocate an object from the pool */
+    /**
+     * @brief Destroy the Static Pool object
+     * 
+     * Calls destructors for all allocated objects.
+     */
+    ~StaticPool()
+    {
+        // Call destructors for all allocated objects
+        for (size_t i = 0; i < SIZE; ++i)
+        {
+            if (used_flags_[i])
+            {
+                (&pool_[i].object_)->~T();
+            }
+        }
+    }
+
+    /**
+     * @brief Allocate an object from the pool
+     * 
+     * Returns a pointer to an uninitialized object from the pool. The caller
+     * is responsible for constructing the object using placement new.
+     * 
+     * @return T* Pointer to allocated memory, or nullptr if pool is full
+     */
     T *allocate()
     {
-        if (available_elements_ == 0) return NULL; /* No available objects in the pool */
-
-        /* Check if the next object indicated by next_index_ is available */
-        if (next_index_ < POOL_SIZE && !used_flags_[next_index_])
+        if (next_index_ == nullptr || available_elements_ == 0)
         {
-            used_flags_[next_index_] = true; /* Mark object as in use */
-            available_elements_--;           /* Decrement available objects count */
-            return &pool_[next_index_++];
+            return nullptr;
         }
 
-        /* Find the next available object */
-        for (size_t i = 0; i < POOL_SIZE; ++i)
-        {
-            if (!used_flags_[i])
-            {
-                used_flags_[i] = true; /* Mark object as in use */
-                available_elements_--; /* Decrement available objects count */
-                next_index_ = i + 1;   /* Update next index */
-                return &pool_[i];
-            }
-        }
-        return NULL; /* No available objects in the pool */
+        PoolElement *element = next_index_;
+        next_index_ = element->next_;
+        available_elements_--;
+
+        // Find the index of the allocated element
+        size_t index = element - pool_;
+        used_flags_[index] = true;
+
+        return &element->object_;
     }
 
-    /* Deallocate an object from the pool */
+    /**
+     * @brief Deallocate an object back to the pool
+     * 
+     * Returns an object to the pool. The caller is responsible for calling
+     * the object's destructor before deallocating.
+     * 
+     * @param ptr Pointer to the object to deallocate
+     * @return true if the object was successfully deallocated
+     * @return false if the pointer is invalid or already deallocated
+     */
     bool deallocate(T *ptr)
     {
-        if (ptr >= &pool_[0] && ptr < &pool_[POOL_SIZE])
+        if (ptr == nullptr)
         {
-            size_t index = ((char *)ptr - (char *)&pool_[0]) / sizeof(T);
-            if (used_flags_[index] && &pool_[index] == ptr)
-            {
-                used_flags_[index] = false; /* Mark object as not in use */
-                available_elements_++;      /* Increment available objects count */
-                if (index < next_index_)
-                {
-                    next_index_ = index; /* Update next index if deallocated object was before it */
-                }
-                return true; // Deallocation successful
-            }
+            return false;
         }
-        return false; // Deallocation failed
+
+        // Find the index of the element
+        PoolElement *element = reinterpret_cast<PoolElement *>(ptr);
+        size_t index = element - pool_;
+
+        // Check if the pointer is valid and the element is in use
+        if (index >= SIZE || !used_flags_[index])
+        {
+            return false;
+        }
+
+        // Add the element back to the free list
+        element->next_ = next_index_;
+        next_index_ = element;
+        used_flags_[index] = false;
+        available_elements_++;
+
+        return true;
     }
 
-private:
-    T pool_[POOL_SIZE];          /* Pool of objects */
-    bool used_flags_[POOL_SIZE]; /* Flags indicating whether an object is in use */
-    size_t next_index_;          /* Index of the next available slot in the pool */
-    size_t available_elements_;  /* Number of available objects in the pool */
+    /**
+     * @brief Check if the pool is empty
+     * 
+     * @return true if all elements are allocated
+     * @return false if there are available elements
+     */
+    bool is_full() const
+    {
+        return available_elements_ == 0;
+    }
+
+    /**
+     * @brief Get the number of available elements in the pool
+     * 
+     * @return size_t Number of elements that can still be allocated
+     */
+    size_t get_available_elements() const
+    {
+        return available_elements_;
+    }
+
+    /**
+     * @brief Get the total capacity of the pool
+     * 
+     * @return size_t Maximum number of elements the pool can hold
+     */
+    size_t get_capacity() const
+    {
+        return SIZE;
+    }
 };
+
 } // namespace util
 
-#endif
+#endif // __UTIL_STATIC_POOL_H__
