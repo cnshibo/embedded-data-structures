@@ -19,23 +19,23 @@ template <typename Key, typename Value, size_t TABLE_SIZE> class StaticMap
 private:
     struct KeyValuePair
     {
-        Key _key;
-        Value *_value_ptr; // Pointer to Value object
-        bool _used;        // Indicates if the slot is used or not
+        Key key_;
+        Value *value_ptr_; // Pointer to Value object
+        bool used_;        // Indicates if the slot is used or not
     };
 
-    KeyValuePair _table[TABLE_SIZE];
-    size_t (*_hash_function)(const Key &); // Function pointer for hash function
+    KeyValuePair table_[TABLE_SIZE];
+    size_t (*hash_function_)(const Key &); // Function pointer for hash function
 
 public:
     // Constructor that accepts a hash function
-    StaticMap(size_t (*hf)(const Key &)) : _hash_function(hf)
+    StaticMap(size_t (*hf)(const Key &)) : hash_function_(hf)
     {
         // Initialize all slots as unused
         for (size_t i = 0; i < TABLE_SIZE; ++i)
         {
-            _table[i]._used = false;
-            _table[i]._value_ptr = NULL;
+            table_[i].used_ = false;
+            table_[i].value_ptr_ = NULL;
         }
     }
 
@@ -44,22 +44,22 @@ public:
         // Cleanup
         for (size_t i = 0; i < TABLE_SIZE; ++i)
         {
-            _table[i]._value_ptr = NULL; // Set value pointer to NULL
+            table_[i].value_ptr_ = NULL; // Set value pointer to NULL
         }
     }
 
     bool insert(const Key &key, Value *value_ptr)
     {
-        size_t index = _hash_function(key);
+        size_t index = hash_function_(key);
         size_t start_index = index;
 
-        while (_table[index]._used)
+        while (table_[index].used_)
         {
             // Linear probing for collision resolution
-            if (_table[index]._key == key)
+            if (table_[index].key_ == key)
             {
                 // Key already exists, update value pointer
-                _table[index]._value_ptr = value_ptr; // Update value pointer
+                table_[index].value_ptr_ = value_ptr; // Update value pointer
                 return true;
             }
             index = (index + 1) % TABLE_SIZE;
@@ -71,24 +71,24 @@ public:
         }
 
         // Insert new key-value pair
-        _table[index]._key = key;
-        _table[index]._value_ptr = value_ptr;
-        _table[index]._used = true;
+        table_[index].key_ = key;
+        table_[index].value_ptr_ = value_ptr;
+        table_[index].used_ = true;
         return true;
     }
 
     Value *get(const Key &key) const
     {
-        size_t index = _hash_function(key);
+        size_t index = hash_function_(key);
         size_t start_index = index;
         Value *value_ptr = NULL;
 
-        while (_table[index]._used)
+        while (table_[index].used_)
         {
-            if (_table[index]._key == key)
+            if (table_[index].key_ == key)
             {
                 // Key found, return corresponding value pointer
-                value_ptr = _table[index]._value_ptr;
+                value_ptr = table_[index].value_ptr_;
             }
             index = (index + 1) % TABLE_SIZE;
             if (index == start_index)
@@ -117,16 +117,16 @@ public:
 
     bool remove(const Key &key)
     {
-        size_t index = _hash_function(key);
+        size_t index = hash_function_(key);
         size_t start_index = index;
 
-        while (_table[index]._used)
+        while (table_[index].used_)
         {
-            if (_table[index]._key == key)
+            if (table_[index].key_ == key)
             {
                 // Key found, mark slot as unused and set value pointer to NULL
-                _table[index]._used = false;
-                _table[index]._value_ptr = NULL;
+                table_[index].used_ = false;
+                table_[index].value_ptr_ = NULL;
                 return true;
             }
             index = (index + 1) % TABLE_SIZE;

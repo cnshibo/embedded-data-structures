@@ -6,35 +6,35 @@ namespace util
 template <typename T, size_t POOL_SIZE> class StaticPool
 {
 public:
-    StaticPool() : _available_elements(POOL_SIZE)
+    StaticPool() : available_elements_(POOL_SIZE)
     {
         /* Initialize all flags to indicate objects are not in use */
-        memset(_used_flags, 0, POOL_SIZE * sizeof(bool));
-        _next_index = 0;
+        memset(used_flags_, 0, POOL_SIZE * sizeof(bool));
+        next_index_ = 0;
     }
 
     /* Allocate an object from the pool */
     T *allocate()
     {
-        if (_available_elements == 0) return NULL; /* No available objects in the pool */
+        if (available_elements_ == 0) return NULL; /* No available objects in the pool */
 
-        /* Check if the next object indicated by _next_index is available */
-        if (_next_index < POOL_SIZE && !_used_flags[_next_index])
+        /* Check if the next object indicated by next_index_ is available */
+        if (next_index_ < POOL_SIZE && !used_flags_[next_index_])
         {
-            _used_flags[_next_index] = true; /* Mark object as in use */
-            _available_elements--;           /* Decrement available objects count */
-            return &_pool[_next_index++];
+            used_flags_[next_index_] = true; /* Mark object as in use */
+            available_elements_--;           /* Decrement available objects count */
+            return &pool_[next_index_++];
         }
 
         /* Find the next available object */
         for (size_t i = 0; i < POOL_SIZE; ++i)
         {
-            if (!_used_flags[i])
+            if (!used_flags_[i])
             {
-                _used_flags[i] = true; /* Mark object as in use */
-                _available_elements--; /* Decrement available objects count */
-                _next_index = i + 1;   /* Update next index */
-                return &_pool[i];
+                used_flags_[i] = true; /* Mark object as in use */
+                available_elements_--; /* Decrement available objects count */
+                next_index_ = i + 1;   /* Update next index */
+                return &pool_[i];
             }
         }
         return NULL; /* No available objects in the pool */
@@ -43,16 +43,16 @@ public:
     /* Deallocate an object from the pool */
     bool deallocate(T *ptr)
     {
-        if (ptr >= &_pool[0] && ptr < &_pool[POOL_SIZE])
+        if (ptr >= &pool_[0] && ptr < &pool_[POOL_SIZE])
         {
-            size_t index = ((char *)ptr - (char *)&_pool[0]) / sizeof(T);
-            if (_used_flags[index] && &_pool[index] == ptr)
+            size_t index = ((char *)ptr - (char *)&pool_[0]) / sizeof(T);
+            if (used_flags_[index] && &pool_[index] == ptr)
             {
-                _used_flags[index] = false; /* Mark object as not in use */
-                _available_elements++;      /* Increment available objects count */
-                if (index < _next_index)
+                used_flags_[index] = false; /* Mark object as not in use */
+                available_elements_++;      /* Increment available objects count */
+                if (index < next_index_)
                 {
-                    _next_index = index; /* Update next index if deallocated object was before it */
+                    next_index_ = index; /* Update next index if deallocated object was before it */
                 }
                 return true; // Deallocation successful
             }
@@ -61,10 +61,10 @@ public:
     }
 
 private:
-    T _pool[POOL_SIZE];          /* Pool of objects */
-    bool _used_flags[POOL_SIZE]; /* Flags indicating whether an object is in use */
-    size_t _next_index;          /* Index of the next available slot in the pool */
-    size_t _available_elements;  /* Number of available objects in the pool */
+    T pool_[POOL_SIZE];          /* Pool of objects */
+    bool used_flags_[POOL_SIZE]; /* Flags indicating whether an object is in use */
+    size_t next_index_;          /* Index of the next available slot in the pool */
+    size_t available_elements_;  /* Number of available objects in the pool */
 };
 } // namespace util
 

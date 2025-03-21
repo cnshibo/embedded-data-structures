@@ -9,29 +9,29 @@ namespace util
 template <typename T, size_t MAX_SIZE> class StaticQueue
 {
 private:
-    T *_elements[MAX_SIZE];
-    size_t _front;
-    size_t _rear;
-    size_t _size;
+    T *elements_[MAX_SIZE];
+    size_t front_;
+    size_t rear_;
+    size_t size_;
 
 public:
-    StaticQueue() : _front(0), _rear(0), _size(0)
+    StaticQueue() : front_(0), rear_(0), size_(0)
     {
     }
 
     bool empty() const
     {
-        return _size == 0;
+        return size_ == 0;
     }
 
     bool full() const
     {
-        return _size == MAX_SIZE;
+        return size_ == MAX_SIZE;
     }
 
     size_t size() const
     {
-        return _size;
+        return size_;
     }
 
     bool push(T *item)
@@ -40,9 +40,9 @@ public:
         {
             return false; // Queue is full, cannot push
         }
-        _elements[_rear] = item;
-        _rear = (_rear + 1) % MAX_SIZE;
-        ++_size;
+        elements_[rear_] = item;
+        rear_ = (rear_ + 1) % MAX_SIZE;
+        ++size_;
         return true;
     }
 
@@ -52,8 +52,8 @@ public:
         {
             return; // Queue is empty, cannot pop
         }
-        _front = (_front + 1) % MAX_SIZE;
-        --_size;
+        front_ = (front_ + 1) % MAX_SIZE;
+        --size_;
     }
 
     const T *front() const
@@ -62,7 +62,7 @@ public:
         {
             return NULL; // Queue is empty
         }
-        return _elements[_front];
+        return elements_[front_];
     }
 
     T *front()
@@ -71,7 +71,7 @@ public:
         {
             return NULL; // Queue is empty
         }
-        return _elements[_front];
+        return elements_[front_];
     }
 
     const T *back() const
@@ -80,7 +80,7 @@ public:
         {
             return NULL; // Queue is empty
         }
-        return _elements[(_rear + MAX_SIZE - 1) % MAX_SIZE];
+        return elements_[(rear_ + MAX_SIZE - 1) % MAX_SIZE];
     }
 
     T *back()
@@ -89,7 +89,7 @@ public:
         {
             return NULL; // Queue is empty
         }
-        return _elements[(_rear + MAX_SIZE - 1) % MAX_SIZE];
+        return elements_[(rear_ + MAX_SIZE - 1) % MAX_SIZE];
     }
 };
 

@@ -17,10 +17,10 @@ template <typename T> class List
 {
 public:
     // Constructor
-    List() : _head(), _size(0)
+    List() : head_(), size_(0)
     {
-        _head.next = &_head;
-        _head.prev = &_head;
+        head_.next = &head_;
+        head_.prev = &head_;
     }
 
     // Insert a new node after the specified position
@@ -30,7 +30,7 @@ public:
         newNode->_list.prev = pos;
         pos->next->prev = &newNode->_list;
         pos->next = &newNode->_list;
-        ++_size;
+        ++size_;
     }
 
     // Remove the specified node from the list
@@ -38,13 +38,13 @@ public:
     {
         entry->_list.next->prev = entry->_list.prev;
         entry->_list.prev->next = entry->_list.next;
-        --_size;
+        --size_;
     }
 
     // Push an element to the back of the list
     void push_back(T *newNode)
     {
-        insert(&_head, newNode);
+        insert(&head_, newNode);
     }
 
     // Pop the element at the back of the list
@@ -54,7 +54,7 @@ public:
         {
             return nullptr;
         }
-        T *back = reinterpret_cast<T *>(_head.prev);
+        T *back = reinterpret_cast<T *>(head_.prev);
         remove(back);
         return back;
     }
@@ -66,7 +66,7 @@ public:
         {
             return nullptr;
         }
-        T *front = reinterpret_cast<T *>(_head.next);
+        T *front = reinterpret_cast<T *>(head_.next);
         remove(front);
         return front;
     }
@@ -74,30 +74,30 @@ public:
     // Get the size of the list
     size_t size() const
     {
-        return _size;
+        return size_;
     }
 
     // Check if the list is empty
     bool empty() const
     {
-        return _size == 0;
+        return size_ == 0;
     }
 
     // Get the pointer to the first element
     list_node_t *begin()
     {
-        return _head.next;
+        return head_.next;
     }
 
     // Get the pointer to the last element
     list_node_t *end()
     {
-        return &_head;
+        return &head_;
     }
 
 private:
-    list_node_t _head; // Head of the list
-    size_t _size;      // Size of the list
+    list_node_t head_; // Head of the list
+    size_t size_;      // Size of the list
 };
 
 } // namespace util
