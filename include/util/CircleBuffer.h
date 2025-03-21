@@ -6,16 +6,16 @@ namespace util
 template <size_t BUFFER_SIZE> class CircleBuffer
 {
 private:
-    uint8_t _buffer[BUFFER_SIZE];
-    size_t _head_index;
-    size_t _tail_index;
-    size_t _buffer_size;
+    uint8_t buffer_[BUFFER_SIZE];
+    size_t head_index_;
+    size_t tail_index_;
+    size_t buffer_size_;
 
 public:
-    CircleBuffer() : _head_index(0), _tail_index(0), _buffer_size(0)
+    CircleBuffer() : head_index_(0), tail_index_(0), buffer_size_(0)
     {
         // Initialize buffer
-        memset(_buffer, 0, sizeof(_buffer));
+        memset(buffer_, 0, sizeof(buffer_));
     }
 
     ~CircleBuffer()
@@ -25,74 +25,74 @@ public:
 
     bool put(const uint8_t *data, size_t length)
     {
-        if (length > BUFFER_SIZE - _buffer_size)
+        if (length > BUFFER_SIZE - buffer_size_)
         {
             // Insufficient space in buffer
             return false;
         }
 
         // Copy data into the buffer
-        size_t bytes_to_end = BUFFER_SIZE - _tail_index;
+        size_t bytes_to_end = BUFFER_SIZE - tail_index_;
         if (bytes_to_end >= length)
         {
             // No wrap-around needed
-            memcpy(_buffer + _tail_index, data, length);
+            memcpy(buffer_ + tail_index_, data, length);
         }
         else
         {
             // Wrap-around needed
-            memcpy(_buffer + _tail_index, data, bytes_to_end);
-            memcpy(_buffer, data + bytes_to_end, length - bytes_to_end);
+            memcpy(buffer_ + tail_index_, data, bytes_to_end);
+            memcpy(buffer_, data + bytes_to_end, length - bytes_to_end);
         }
 
         // Update tail index and buffer size
-        _tail_index = (_tail_index + length) % BUFFER_SIZE;
-        _buffer_size += length;
+        tail_index_ = (tail_index_ + length) % BUFFER_SIZE;
+        buffer_size_ += length;
 
         return true;
     }
 
     bool get(uint8_t *data, size_t length)
     {
-        if (length > _buffer_size)
+        if (length > buffer_size_)
         {
             // Insufficient data in buffer
             return false;
         }
 
         // Copy data from the buffer
-        size_t bytes_to_end = BUFFER_SIZE - _head_index;
+        size_t bytes_to_end = BUFFER_SIZE - head_index_;
         if (bytes_to_end >= length)
         {
             // No wrap-around needed
-            memcpy(data, _buffer + _head_index, length);
+            memcpy(data, buffer_ + head_index_, length);
         }
         else
         {
             // Wrap-around needed
-            memcpy(data, _buffer + _head_index, bytes_to_end);
-            memcpy(data + bytes_to_end, _buffer, length - bytes_to_end);
+            memcpy(data, buffer_ + head_index_, bytes_to_end);
+            memcpy(data + bytes_to_end, buffer_, length - bytes_to_end);
         }
 
         // Update head index and buffer size
-        _head_index = (_head_index + length) % BUFFER_SIZE;
-        _buffer_size -= length;
+        head_index_ = (head_index_ + length) % BUFFER_SIZE;
+        buffer_size_ -= length;
         return true;
     }
 
     bool is_empty() const
     {
-        return _buffer_size == 0;
+        return buffer_size_ == 0;
     }
 
     bool is_full() const
     {
-        return _buffer_size == BUFFER_SIZE;
+        return buffer_size_ == BUFFER_SIZE;
     }
 
     size_t get_size() const
     {
-        return _buffer_size;
+        return buffer_size_;
     }
 
     size_t get_capacity() const
