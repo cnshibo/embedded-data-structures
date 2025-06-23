@@ -1,7 +1,7 @@
 #ifndef __UTIL_MOVING_AVERAGE_FILTER_HPP__
 #define __UTIL_MOVING_AVERAGE_FILTER_HPP__
 
-#include <cstddef>  // for size_t
+#include <stddef.h>  // for size_t
 
 namespace util
 {
@@ -47,20 +47,19 @@ public:
      */
     bool put(float sample)
     {
-        sum_ -= buffer_[index_];
+        if (inited_) {
+            sum_ -= buffer_[index_];
+        }
         buffer_[index_] = sample;
         sum_ += sample;
 
-        if (inited_)
-        {
+        if (inited_) {
             average_ = sum_ / SIZE;
-        }
-        else
-        {
-            average_ = sample;
-            if (index_ == SIZE - 1)
-            {
+        } else {
+            average_ = sum_ / (index_ + 1);  // Use actual sample count
+            if (index_ == SIZE - 1) {
                 inited_ = true;
+                average_ = sum_ / SIZE;  // Recalculate with full buffer
             }
         }
 
@@ -102,6 +101,24 @@ public:
     bool is_ready() const
     {
         return inited_;
+    }
+
+    /**
+     * @brief Get current sample count
+     * 
+     * @return size_t Number of samples currently in the buffer
+     */
+    size_t sample_count() const {
+        return inited_ ? SIZE : index_;
+    }
+
+    /**
+     * @brief Get buffer size
+     * 
+     * @return size_t The template parameter SIZE
+     */
+    static size_t buffer_size() {
+        return SIZE;
     }
 };
 
